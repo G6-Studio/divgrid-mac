@@ -52,12 +52,20 @@ any data.
 
 | Path | Purpose |
 |---|---|
-| `Sources/DivGrid/AppDelegate.swift` | Menu bar item, grid panels, target tracking |
-| `Sources/DivGrid/GridPanel.swift` | Grid UI (SwiftUI) and the target outline |
-| `Sources/DivGrid/WindowMover.swift` | Accessibility API window lookup and placement |
-| `Sources/DivGrid/HotKey.swift` | Global hotkey (Carbon) |
-| `Sources/DivGrid/Settings*.swift` | Preferences and the settings window |
-| `scripts/build-app.sh` | Builds the `.app` bundle |
+| `Sources/DivGridCore/` | Pure logic with no AppKit: grid geometry, screen coordinates, shortcuts, preferences |
+| `Sources/DivGrid/` | The app: menu bar, grid panels, hotkey, Accessibility API |
+| `Tests/DivGridCoreTests/` | Unit tests for the core library |
+| `scripts/` | App bundling, release packaging, icon generation |
+
+## Development
+
+```sh
+swift test                                   # unit tests
+swift format -i -r Sources Tests             # format
+log stream --predicate 'subsystem == "studio.g6.divgrid"' --level debug   # live logs
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## Support
 

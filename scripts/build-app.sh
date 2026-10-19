@@ -5,9 +5,10 @@ cd "$(dirname "$0")/.."
 swift build -c release --arch arm64
 APP=build/DivGrid.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$(swift build -c release --arch arm64 --show-bin-path)/DivGrid" "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 # With SIGN_IDENTITY (e.g. "Developer ID Application: G6 Studio LLC (TEAMID)") the app is signed with the
 # hardened runtime, as notarization requires. Otherwise it is signed ad hoc with a stable designated
 # requirement so the Accessibility grant survives rebuilds.

@@ -1,13 +1,11 @@
-import AppKit
-import Carbon.HIToolbox
+import DivGridCore
 import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
-    // Same UserDefaults keys as `Settings`.
-    @AppStorage("columns") private var columns = 6
-    @AppStorage("rows") private var rows = 6
-    @AppStorage("margin") private var margin = 0.0
+    @AppStorage(PreferenceKey.columns) private var columns = GridSize.default.columns
+    @AppStorage(PreferenceKey.rows) private var rows = GridSize.default.rows
+    @AppStorage(PreferenceKey.margin) private var margin = 0.0
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -18,7 +16,7 @@ struct SettingsView: View {
         Form {
             Section("General") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, on in setLaunchAtLogin(on) }
+                    .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
                 if let loginError {
                     Text(loginError).font(.caption).foregroundStyle(.red)
                 } else if needsApproval {
@@ -30,14 +28,15 @@ struct SettingsView: View {
                 LabeledContent("Show grid") { HotKeyRecorder() }
             }
             Section("Grid") {
-                Stepper("Columns: \(columns)", value: $columns, in: 2...20)
-                Stepper("Rows: \(rows)", value: $rows, in: 2...20)
+                Stepper("Columns: \(columns)", value: $columns, in: GridSize.allowedRange)
+                Stepper("Rows: \(rows)", value: $rows, in: GridSize.allowedRange)
                 LabeledContent("Margin") {
                     HStack {
-                        Slider(value: $margin, in: 0...20, step: 1)
+                        Slider(value: $margin, in: Preferences.marginRange, step: 1)
                         Text("\(Int(margin)) pt").monospacedDigit().frame(width: 44, alignment: .trailing)
                     }
                 }
+                .help("Gap kept inside each window's region, so neighbouring windows sit twice this far apart.")
             }
         }
         .formStyle(.grouped)
@@ -45,48 +44,15 @@ struct SettingsView: View {
         .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
     }
 
-    private func setLaunchAtLogin(_ on: Bool) {
+    private func setLaunchAtLogin(_ enabled: Bool) {
         do {
-            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             loginError = nil
         } catch {
+            Log.lifecycle.error("Launch at login change failed: \(error, privacy: .public)")
             loginError = error.localizedDescription
         }
-        // Reflect the real state (e.g. registration failed or needs approval).
+        // Show the real state, e.g. when registration failed or still needs approval.
         launchAtLogin = SMAppService.mainApp.status == .enabled
-    }
-}
-
-/// Button that records the next key combination (requires at least one modifier; Esc cancels).
-struct HotKeyRecorder: View {
-    @State private var recording = false
-    @State private var label = Settings.hotKeyDescription
-    @State private var monitor: Any?
-
-    var body: some View {
-        Button(recording ? "Press shortcut…" : label) { recording ? stop() : start() }
-            .onDisappear { if recording { stop() } }
-    }
-
-    private func start() {
-        recording = true
-        NotificationCenter.default.post(name: .hotKeyPause, object: nil)
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { e in
-            if Int(e.keyCode) == kVK_Escape { stop(); return nil }
-            let mods = Settings.carbonModifiers(e.modifierFlags)
-            guard mods != 0 else { NSSound.beep(); return nil }
-            Settings.hotKeyCode = UInt32(e.keyCode)
-            Settings.hotKeyModifiers = mods
-            Settings.hotKeyLabel = Settings.keyLabel(for: e)
-            label = Settings.hotKeyDescription
-            stop()
-            return nil
-        }
-    }
-
-    private func stop() {
-        if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
-        recording = false
-        NotificationCenter.default.post(name: .hotKeyChanged, object: nil)
     }
 }

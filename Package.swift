@@ -5,10 +5,12 @@ let package = Package(
     name: "DivGrid",
     platforms: [.macOS("26.0")],
     targets: [
+        // Pure logic (grid math, coordinates, shortcuts, preferences). No AppKit, so it is unit-testable.
+        .target(name: "DivGridCore"),
         .executableTarget(
             name: "DivGrid",
-            path: "Sources/DivGrid",
-            swiftSettings: [.swiftLanguageMode(.v5)]
-        )
+            dependencies: ["DivGridCore"]
+        ),
+        .testTarget(name: "DivGridCoreTests", dependencies: ["DivGridCore"]),
     ]
 )
